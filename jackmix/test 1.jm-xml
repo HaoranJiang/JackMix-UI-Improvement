@@ -1,0 +1,13 @@
+<jackmix version="0.5">
+<ins>
+<channel name="in_1" volume="0" midi="0" />
+</ins>
+<outs>
+<channel name="out_1" volume="0" midi="0" />
+</outs>
+<matrix>
+<volume in="in_1" out="out_1" value="0" midi="0" />
+</matrix>
+<elements>
+</elements>
+</jackmix>

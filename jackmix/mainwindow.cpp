@@ -52,6 +52,7 @@
 #include <QtWidgets/QApplication>
 #include <QtCore/QString>
 #include <QtCore/QHash>
+#include <QtWidgets/QComboBox>
 
 #include <QtXml/QDomDocument>
 
@@ -59,36 +60,25 @@
 using namespace JackMix;
 using namespace JackMix::MixingMatrix;
 
-MainWindow::MainWindow( QWidget* p ) : QMainWindow( p ), _backend( new JackBackend( new GUI::GraphicalGuiServer( this ) ) ), _autofillscheduled( true ) {
-	//qDebug() << "MainWindow::MainWindow(" << p << ")";
+MainWindow::MainWindow( int inputCount, int outputCount, QWidget* p ) : QMainWindow( p ), _backend( new JackBackend( new GUI::GraphicalGuiServer( this ) ) ), _autofillscheduled( true ) {
+	
 	init();
 
-	QStringList ins;
-	QStringList outs;
-	{
-		QStringList args = qApp->arguments();
-		bool yes = false;
-        /*	foreach( QString tmp, args )
-			if ( tmp.contains( "lash" ) )
-                        yes = true;  */
-		if ( !yes ) {
-			ins = QStringList() << "in_1" << "in_2" << "in_3" << "in_4" << "in_5" << "in_6" << "in_7" << "in_8";
-			outs = QStringList() << "out_1" << "out_2";
-		}
-	}
+    // Add the specified number of inputs and outputs.
+    for (int i = 0; i < inputCount; ++i) {
+        addInput(QString("in_%1").arg(i + 1));
+    }
+    for (int i = 0; i < outputCount; ++i) {
+        addOutput(QString("out_%1").arg(i + 1));
+    }
 
-	foreach( QString in, ins )
-		addInput( in );
-	foreach( QString out, outs )
-		addOutput( out );
+    QStringList ins = _backend->inchannels();
+    QStringList outs = _backend->outchannels();
+    if (ins.empty() || outs.empty())
+        statusBar()->showMessage("No Channels available :-(");
 
-	ins = _backend->inchannels();
-	outs = _backend->outchannels();
-	if ( ins.empty() || outs.empty() )
-		statusBar()->showMessage( "No Channels available :-(" );
-
-	_autofillscheduled = false;
-	scheduleAutoFill();
+    _autofillscheduled = false;
+    scheduleAutoFill();
 
 	//qDebug() << "MainWindow::MainWindow() finished...";
 }
@@ -115,6 +105,32 @@ void MainWindow::init() {
 
 	JackMix::MixerElements::init_aux_elements();
 	JackMix::MixerElements::init_stereo_elements();
+
+	colors = QStringList{ "None", "Red", "Green", "Blue" };
+	colorValues = QList<QColor>{ Qt::transparent, QColor(255, 0, 0), QColor(0, 255, 0), QColor(0, 0, 255) };
+
+	shortcut1 = new QShortcut(QKeySequence("Ctrl+1"), this);
+	connect(shortcut1, &QShortcut::activated, [this]() { changeColorShortcut(0); });
+	shortcut2 = new QShortcut(QKeySequence("Ctrl+2"), this);
+	connect(shortcut2, &QShortcut::activated, [this]() { changeColorShortcut(1); });
+	shortcut3 = new QShortcut(QKeySequence("Ctrl+3"), this);
+	connect(shortcut3, &QShortcut::activated, [this]() { changeColorShortcut(2); });
+	shortcut4 = new QShortcut(QKeySequence("Ctrl+4"), this);
+	connect(shortcut4, &QShortcut::activated, [this]() { changeColorShortcut(3); });
+	shortcut5 = new QShortcut(QKeySequence("Ctrl+5"), this);
+	connect(shortcut5, &QShortcut::activated, [this]() { changeColorShortcut(4); });
+	shortcut6 = new QShortcut(QKeySequence("Ctrl+6"), this);
+	connect(shortcut6, &QShortcut::activated, [this]() { changeColorShortcut(5); });
+	shortcut7 = new QShortcut(QKeySequence("Ctrl+7"), this);
+	connect(shortcut7, &QShortcut::activated, [this]() { changeColorShortcut(6); });
+	shortcut8 = new QShortcut(QKeySequence("Ctrl+8"), this);
+	connect(shortcut8, &QShortcut::activated, [this]() { changeColorShortcut(7); });
+	shortcut9 = new QShortcut(QKeySequence("Ctrl+9"), this);
+	connect(shortcut9, &QShortcut::activated, [this]() { changeColorShortcut(8); });
+
+	shortcutReset = new QShortcut(QKeySequence("Ctrl+0"), this);
+	connect(shortcutReset, &QShortcut::activated, this, &MainWindow::resetColors);
+
 
 	_filemenu = menuBar()->addMenu( "&File" );
 	_filemenu->addAction( "Open File...", this, SLOT( openFile() ), Qt::CTRL+Qt::Key_O );
@@ -157,6 +173,15 @@ void MainWindow::init() {
 	connect( _toggleout_action, SIGNAL( triggered() ), this, SLOT( toggleout() ) );
 	_viewmenu->addAction( _toggleout_action );
 
+	_colormenu = menuBar()->addMenu( "Change &Color" );
+	_change_inchannel_color_menu_action = new QAction( "Change &Input Menu", this );
+	connect( _change_inchannel_color_menu_action , SIGNAL( triggered() ), this, SLOT( changeColorDialog() ) );
+	_colormenu->addAction( _change_inchannel_color_menu_action );
+
+	_darkmenu = menuBar()->addMenu( "Dark &Mode" );
+	_dark_mode_action = new QAction( "Turn &On / Off Dark Mode", this );
+	_darkmenu->addAction( _dark_mode_action );
+
 	_helpmenu = menuBar()->addMenu( "&Help" );
 	_helpmenu->addAction( "About &JackMix", this, SLOT( about() ) );
 	_helpmenu->addAction( "About &Qt", this, SLOT( aboutQt() ) );
@@ -167,13 +192,21 @@ void MainWindow::init() {
 	_mixerwidget = new MixingMatrix::Widget( QStringList() << "i1", QStringList() << "o1", _backend, _mw );
 	_mixerwidget->removeinchannel( "i1" );
 	_mixerwidget->removeoutchannel( "o1" );
+	_mixerwidget->setStyleSheet("padding: 0px;");
 	_mw->layout->addWidget( _mixerwidget, 1,0 );
 	_inputswidget = new MixingMatrix::Widget( QStringList() << "i1", QStringList(), _backend, _mw );
 	_inputswidget->removeinchannel( "i1" );
+	_inputswidget->setStyleSheet("padding: 0px;");
 	_mw->layout->addWidget( _inputswidget, 0,0 );
 	_outputswidget = new MixingMatrix::Widget( QStringList(), QStringList() << "o1", _backend, _mw );
 	_outputswidget->removeoutchannel( "o1" );
+	_inputswidget->setStyleSheet("padding: 0px;");
 	_mw->layout->addWidget( _outputswidget, 1,1 );
+
+	QSizePolicy sizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+	_inputswidget->setSizePolicy(sizePolicy);
+	_outputswidget->setSizePolicy(sizePolicy);
+
 
 	// When the widgets have finished laying themselves out, we need to set up
 	// their Midi parameters. This can't happen before layout's complete because
@@ -187,23 +220,21 @@ void MainWindow::init() {
 		 this, SLOT(updateAutoFilledMidiParams(MixingMatrix::Widget *)) );
 
 	_mw->layout->setRowStretch( 0, 1 );
+	// _mw->layout->setRowStretch( 0, int( 1E2 ) );
 	_mw->layout->setRowStretch( 1, int( 1E2 ) );
 	_mw->layout->setColumnStretch( 1, 1 );
+	// _mw->layout->setColumnStretch( 1, int( 1E2 ) );
 	_mw->layout->setColumnStretch( 0, int( 1E2 ) );
 
-//	_debugPrint = new QAction( "DebugPrint", CTRL+Key_P, this );
-//	connect( _debugPrint, SIGNAL( activated() ), _mixerwidget, SLOT( debugPrint() ) );
-//	_debugPrint->addTo( _filemenu );
+	_mw->layout->setContentsMargins(0, 0, 0, 0); 
+
+
+	_mw->layout->setSpacing(0); // Set the spacing to 0
+
 
 	_select_action->toggle();
 	toggleselectmode();
-/*
-	_lashclient = new qLash::qLashClient( "JackMix", 0,0, this );
-	connect( _lashclient, SIGNAL( quitApp() ), this, SLOT( close() ) );
-	connect( _lashclient, SIGNAL( saveToDir( QString ) ), this, SLOT( saveLash( QString ) ) );
-	connect( _lashclient, SIGNAL( restoreFromDir( QString ) ), this, SLOT( restoreLash( QString ) ) );
-	//_lashclient->setJackName( "JackMix" );
-*/
+
 	midiControlSender = new MidiControl::ControlSender("JackMix Control");
 
 	connect (_backend, SIGNAL(inputLevelsChanged(JackMix::BackendInterface::levels_t)),
@@ -214,6 +245,15 @@ void MainWindow::init() {
 	// Connect the backend's MIDI control events to the MIDI listener's despatcher.
 	connect (_backend, SIGNAL(cc_message(int, int)),
 		 midiControlSender, SLOT(despatch_message(int, int)));
+
+	qApp->setStyleSheet("QMainWindow { background-color: #000000; color: #ffffff; }"
+                        "QWidget { background-color: #000000; color: #ffffff; }"
+                        "QMenuBar::item { background-color: #000000; color: #ffffff; }"
+                        "QMenu::item { background-color: #000000; color: #ffffff; }"
+                        "QToolBar { background-color: #000000; }"
+                        "QStatusBar { background-color: #000000; color: #ffffff; }"
+                        "QSlider { background-color: #000000; color: #ffffff; }"
+                       );
 
 }
 
@@ -465,6 +505,102 @@ void MainWindow::aboutQt() {
 	QMessageBox::aboutQt( this, "JackMix: About Qt" );
 }
 
+void MainWindow::changeColorDialog() {
+    QDialog dialog(this);
+    QVBoxLayout layout(&dialog);
+
+    QStringList inputChannels = _backend->inchannels(); 
+    for (const QString& channel : inputChannels) {
+        QHBoxLayout* channelLayout = new QHBoxLayout;
+        QLabel* channelLabel = new QLabel(channel, &dialog);
+
+        QComboBox* comboBox = new QComboBox(&dialog);
+        for (int i = 0; i < colors.size(); ++i) {
+            comboBox->addItem(colors[i], colorValues[i]);
+        }
+        
+        // Set the current index of the combo box to the current color index of the channel
+        int currentIndex = channelColorIndices.value(channel, 0); // Default to 0 if no color is set
+        comboBox->setCurrentIndex(currentIndex);
+
+        comboBox->setProperty("channel", channel);
+
+        connect(comboBox, QOverload<int>::of(&QComboBox::activated),
+                this, &MainWindow::changeColor);
+
+        channelLayout->addWidget(channelLabel);
+        channelLayout->addWidget(comboBox);
+        layout.addLayout(channelLayout);
+    }
+
+    dialog.exec();
+}
+
+void MainWindow::changeColorShortcut(int channelIndex) {
+    QStringList inputChannels = _backend->inchannels(); 
+    if (channelIndex >= inputChannels.size()) {
+        return;  // No such channel
+    }
+
+    QString channel = inputChannels[channelIndex];
+    int currentColorIndex = channelColorIndices.value(channel, 0);  // Default to 0 if no color is set
+
+    // Calculate the index of the next color
+    int nextColorIndex = (currentColorIndex + 1) % colors.size();
+
+    // Update the color of the channel
+    channelColorIndices[channel] = nextColorIndex;
+    quickChangeColor(channel, nextColorIndex);
+}
+
+void MainWindow::quickChangeColor(const QString& channel, int index) {
+    QColor color = colorValues[index];
+    QString channelCopy = channel;
+	QList<Element*> elements = _mixerwidget->getElements(channelCopy);
+
+
+    for (int i = 0; i < elements.size(); i++) {
+        Element* element = elements[i];
+        QPalette palette = element->palette();
+        palette.setColor(QPalette::Window, color); 
+        element->setPalette(palette);
+    }
+}
+
+void MainWindow::changeColor(int index) {
+    QComboBox* comboBox = qobject_cast<QComboBox*>(sender());
+    if (!comboBox) {
+        return;
+    }
+
+    // Update the current color index for the channel
+    QString channel = comboBox->property("channel").toString();
+    channelColorIndices[channel] = index;
+
+    QColor color = comboBox->itemData(index, Qt::UserRole).value<QColor>();
+
+    QString targetInputChannel = channel;
+    QList<Element*> elements = _mixerwidget->getElements(targetInputChannel);
+
+    for (int i = 0; i < elements.size(); i++) {
+        Element* element = elements[i];
+        QPalette palette = element->palette();
+        palette.setColor(QPalette::Window, color); 
+        element->setPalette(palette);
+    }
+}
+
+void MainWindow::resetColors() {
+	qDebug() << "Reset colors";
+    QStringList inputChannels = _backend->inchannels();
+
+    for (int i = 0; i < inputChannels.size(); i++) {
+        QString channel = inputChannels[i];
+        channelColorIndices[channel] = 0;
+        quickChangeColor(channel, 0);
+    }
+}
+
 void MainWindow::toggleselectmode() {
 	bool select = ( _mixerwidget->mode() == Widget::Select );
 	if ( select )
@@ -688,7 +824,7 @@ void MainWindow::restoreLash( QString dir ) {
 
 MainWindowHelperWidget::MainWindowHelperWidget( QWidget* p ) : QWidget( p ) {
 	layout = new QGridLayout( this );
-	layout->setMargin( 2 );
-	layout->setSpacing( 2 );
+	//layout->setMargin( 2 );
+	//layout->setSpacing( 2 );
 }
 

@@ -206,6 +206,22 @@ void Widget::placeFilled() {
 	unlock();
 }
 
+QList<Element*> Widget::getElements(QString& inputChannel) const{
+    QList<Element*> elements;
+	qDebug() << _inchannels[0];
+
+    for (int i = 0; i < _elements.size(); i++) {
+        Element* element = _elements[i];
+
+        // Check if the element's input channel matches the target channel
+        if (element->in().contains(inputChannel)) {
+            elements.append(element);
+        }
+    }
+
+    return elements;
+}
+
 void Widget::resizeEvent( QResizeEvent* ) {
 	setMinimumSize( sizeHint() );
 	//qDebug( "MinimumSize = (%i,%i)", sizeHint().width(), sizeHint().height() );

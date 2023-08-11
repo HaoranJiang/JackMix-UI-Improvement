@@ -31,6 +31,10 @@
 #include <QtCore/QList>
 #include <QtCore/QHash>
 #include <QtWidgets/QGridLayout>
+#include <QtWidgets/QComboBox>
+#include <QShortcut>
+
+
 
 #include "controlsender.h"
 
@@ -64,7 +68,7 @@ public:
 class MainWindow : public QMainWindow {
 Q_OBJECT
 public:
-	MainWindow( QWidget* =0 );
+	MainWindow( int inputCount, int outputCount, QWidget* =0 );
 	MainWindow( QString filename, QWidget* =0 );
 	~MainWindow();
 
@@ -78,6 +82,12 @@ public slots:
 	void openFile();
 	void openFile( QString path );
 	void saveFile( QString path="" );
+
+	void changeColor( int index );
+	void changeColorDialog();
+	void changeColorShortcut(int channelIndex);
+    void quickChangeColor(const QString& channel, int index);
+	void resetColors();
 
 private slots:
 	void toggleselectmode();
@@ -115,7 +125,26 @@ private slots:
 private:
 	void init();
 	int config_restore_id;
-	QMenu *_filemenu, *_editmenu, *_viewmenu, *_settingsmenu, *_helpmenu;
+	QShortcut* shortcut1;
+    QShortcut* shortcut2;
+	
+	QShortcut* shortcut3;
+    QShortcut* shortcut4;
+	
+	QShortcut* shortcut5;
+    QShortcut* shortcut6;
+
+	QShortcut* shortcut7;
+    QShortcut* shortcut8;
+
+	QShortcut* shortcut9;
+	QShortcut* shortcutReset;
+	
+    
+	QMap<QString, int> channelColorIndices;
+	QStringList colors;
+    QList<QColor> colorValues;
+	QMenu *_filemenu, *_editmenu, *_viewmenu, *_settingsmenu, *_helpmenu, *_colormenu, *_darkmenu;
 	MixingMatrix::Widget *_mixerwidget, *_inputswidget, *_outputswidget;
 	/** Elements in the main window's widgets should be allowed to complete their
 	 *  initialisation before their MIDI parameters are set. The following lists of
@@ -125,7 +154,7 @@ private:
 	QHash<QString,QString> _mixermps, _inputmps, _outputmps;
 	MainWindowHelperWidget* _mw;
 	QAction *_select_action
-	      , *_togglein_action, *_toggleout_action
+	      , *_togglein_action, *_toggleout_action, *_change_inchannel_color_action, *_change_inchannel_color_menu_action, *_dark_mode_action
 	      , *_add_inchannel_action, *_add_outchannel_action
 	      , *_rename_input_action, *_rename_output_action
 	      ,*_remove_inchannel_action, *_remove_outchannel_action;

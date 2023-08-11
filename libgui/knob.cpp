@@ -106,28 +106,28 @@ void Knob::paintEvent( QPaintEvent* ) {
 
 	// Draw Knob
 	p.save();
-	p.setPen( Qt::NoPen );
+	p.setPen(Qt::NoPen);
 	{
-		QRadialGradient grad( QPointF( 0,0 ), radius, QPointF( 0, radius*0.7 ) );
-		grad.setColorAt( 0, _indicator );
-		grad.setColorAt( 1, _indicator.darker() );
-		grad.setSpread( QGradient::PadSpread );
-		p.setBrush( grad );
-		p.drawEllipse( QRectF( -radius*0.8, -radius*0.8, radius*1.6, radius*1.6 ) );
+		QRadialGradient grad(QPointF(0, 0), radius, QPointF(0, radius * 0.7));
+		grad.setColorAt(0, Qt::white);
+		grad.setColorAt(1, Qt::white);
+		grad.setSpread(QGradient::PadSpread);
+		p.setBrush(grad);
+		p.drawEllipse(QRectF(-radius * 0.8, -radius * 0.8, radius * 1.6, radius * 1.6));
 	}
 	{
-		QRadialGradient grad( QPointF( 0,0 ), radius*0.60, QPointF( 0, radius*0.20 ) );
-		grad.setColorAt( 1, palette().color( QPalette::Highlight ) );
-		grad.setColorAt( 0, palette().color( QPalette::Highlight ).lighter() );
-		grad.setSpread( QGradient::PadSpread );
-		p.setBrush( grad );
-		p.drawEllipse( QRectF( -radius*0.65, -radius*0.65, radius*1.3, radius*1.3 ) );
+		QRadialGradient grad(QPointF(0, 0), radius * 0.60, QPointF(0, radius * 0.20));
+		grad.setColorAt(1, Qt::white);
+		grad.setColorAt(0, Qt::white);
+		grad.setSpread(QGradient::PadSpread);
+		p.setBrush(grad);
+		p.drawEllipse(QRectF(-radius * 0.65, -radius * 0.65, radius * 1.3, radius * 1.3));
 	}
 	p.restore();
 
 	// Draw ticks
 	p.save();
-	p.setPen( palette().color( QPalette::ButtonText ) );
+	p.setPen(palette().color(QPalette::ButtonText));
 	if ( _show_value ) {
 		for ( double a=_pagestep; a<dbmax; a+= _pagestep ) {
 			p.save();
@@ -170,17 +170,17 @@ void Knob::paintEvent( QPaintEvent* ) {
 
 	// Draw highlight-line for the value
 	p.save();
-	p.rotate( 300 * dbtondb( _value ) );
-	QPen linepen( palette().color( QPalette::HighlightedText ) );
-	linepen.setWidthF( 3 );
-	linepen.setCapStyle( Qt::RoundCap );
-	p.setPen( linepen );
-	p.drawLine( QPointF( 0,0 ), QPointF( radius*0.71,0 ) );
+	p.rotate(300 * dbtondb(_value));
+	QPen linepen(Qt::black); // Black pointer
+	linepen.setWidthF(3);
+	linepen.setCapStyle(Qt::RoundCap);
+	p.setPen(linepen);
+	p.drawLine(QPointF(0, 0), QPointF(radius * 0.71, 0));
 	p.restore();
 
 	p.restore();
 
-	if ( _show_value ) {
+	// if ( _show_value ) {
 
 	QString tmp = QString::number( _value );
 	if ( tmp.contains( "." ) )
@@ -199,12 +199,12 @@ void Knob::paintEvent( QPaintEvent* ) {
 		//p.setBrush( palette().color( QPalette::Window ) );
 		p.setOpacity( 0.75 );
 		p.setBrush( palette().color( QPalette::Base ) );
-		p.drawRoundedRect( rect.translated( -x, y*0.9 ).adjusted( -2, 1, 2,-2 ), 20, 50 );
+		p.drawRoundedRect( rect.translated( -x, y ).adjusted( -2, 1, 2,-2 ), 20, 50 );
 		p.restore();
 	}
-	p.drawText( QPointF( -x, y*0.9 ), tmp );
+	p.drawText( QPointF( -x, y ), tmp );
 
-	}
+	// }
 
 }
 

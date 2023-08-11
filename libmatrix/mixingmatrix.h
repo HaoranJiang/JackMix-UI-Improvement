@@ -109,6 +109,7 @@ public:
 	/** Called when another (not yet initialised) element is created */
 	void anotherControl();
 	/** Called when a lazy initialisation completes */
+	QList<Element*> getElements(QString& inputChannel) const;
 	void placeFilled();
         
         /** These are the colours used for different levels defined in peak_tracker.h */
